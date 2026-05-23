@@ -1,0 +1,70 @@
+-- Perfis e Papéis de Usuários (RBAC)
+CREATE TABLE user_roles (
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    role VARCHAR(20) CHECK (role IN ('admin', 'gestor', 'operador')),
+    PRIMARY KEY (user_id)
+);
+
+-- Cadastro Mestre de Colaboradores
+CREATE TABLE colaboradores (
+    id SERIAL PRIMARY KEY,
+    nome VARCHAR(150) NOT NULL,
+    cargo VARCHAR(50) CHECK (cargo IN ('supervisor', 'lider de linha', 'auxiliar de produção', 'operador jr', 'operador pleno', 'operador senior', 'Especialista ADM')),
+    turno VARCHAR(5) CHECK (turno IN ('A', 'B', 'C', 'ADM')),
+    setor_adm VARCHAR(50) DEFAULT 'N/A',
+    tipo_contratacao VARCHAR(10) CHECK (tipo_contratacao IN ('CLT', 'TERC.')),
+    linha_atual VARCHAR(30),
+    posicao_linha VARCHAR(50),
+    num_cc VARCHAR(15),
+    em_treinamento BOOLEAN DEFAULT FALSE,
+    inicio_treinamento DATE,
+    prorrogado BOOLEAN DEFAULT FALSE
+);
+
+-- Controle de Frequência Diária
+CREATE TABLE frequencias (
+    id SERIAL PRIMARY KEY,
+    data DATE DEFAULT CURRENT_DATE,
+    colaborador_id INT REFERENCES colaboradores(id),
+    status VARCHAR(30) CHECK (status IN ('Presença', 'Atestado', 'Falta Injustificada', 'Saída Antecipada', 'Folga Aniversário')),
+    sancao_disciplinar VARCHAR(30) CHECK (sancao_disciplinar IN ('Nenhuma', 'Advertência Verbal', 'Advertência Escrita', 'Suspensão'))
+);
+
+-- Avaliação Mensal de Equipamentos
+CREATE TABLE avaliacoes_maquinas (
+    id SERIAL PRIMARY KEY,
+    colaborador_id INT REFERENCES colaboradores(id),
+    mes_referencia VARCHAR(7), -- Formato 'YYYY-MM'
+    maquina VARCHAR(30) CHECK (maquina IN ('ZODE', 'MULTIPACK', 'OPTIMA', 'ROBO', 'CONVERTEDORA', 'EMBALADORA', 'ROBO_DACHANG', 'ROBO_KANSAN')),
+    nivel_proficiencia VARCHAR(30) CHECK (nivel_proficiencia IN ('Não Sabe', 'Em Treinamento', 'Opera com Supervisão', 'Autônomo'))
+);
+
+-- Apontamento Diário de Produção
+CREATE TABLE producao_registros (
+    id SERIAL PRIMARY KEY,
+    data DATE DEFAULT CURRENT_DATE,
+    linha VARCHAR(30),
+    turno VARCHAR(5),
+    meta_turno INT,
+    produzido INT,
+    velocidade_atual INT, -- unidades/h
+    motivo_velocidade VARCHAR(50) CHECK (motivo_velocidade IN ('Normal', 'Setup', 'Manutenção', 'Falta de Material', 'Qualidade', 'Outro'))
+);
+
+-- Qualidade (Não-Conformidades)
+CREATE TABLE nao_conformidades (
+    id SERIAL PRIMARY KEY,
+    data DATE DEFAULT CURRENT_DATE,
+    linha VARCHAR(30),
+    descricao TEXT,
+    evidencia_url TEXT
+);
+
+-- Segurança e Saúde Ocupacional (HSE)
+CREATE TABLE ocorrencias_hse (
+    id SERIAL PRIMARY KEY,
+    data DATE DEFAULT CURRENT_DATE,
+    tipo VARCHAR(30) CHECK (tipo IN ('Quase Acidente', 'Incidente Técnico', 'Acidente de Trabalho')),
+    linha VARCHAR(30),
+    descricao_critica TEXT
+);
